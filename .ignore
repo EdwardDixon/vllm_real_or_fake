@@ -1,4 +1,4 @@
 .env
+elm-detector-probe/.env
 .venv/
-env-detector-probe/data/
 uv.lock
