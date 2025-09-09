@@ -62,11 +62,11 @@ Note: Runtime scripts rely on `requests`, `pillow`, `tqdm`, `python-dotenv`, etc
 **Run: Prompt Generation**
 - Use `promptgen_remote.py` to turn images into semantic/style prompt JSON. It expects a directory containing one-level subfolders, and reads images inside those subfolders (no deeper recursion).
 - Recommended (all shells):
-- `python elm-detector-probe/src/promptgen_remote.py --in elm-detector-probe/data/real --out out/prompts.jsonl --model qwen2-vl-7b-instruct`
+- `python elm-detector-probe/src/promptgen_remote.py --in elm-detector-probe/data/real --out out/prompts.jsonl --model qwen/qwen-2.5-vl-7b-instruct`
 - If you prefer JSON:
-- Bash/macOS/Linux: `--vlm '{"model":"qwen2-vl-7b-instruct"}'`
-- PowerShell: `--vlm "{`"model`":`"qwen2-vl-7b-instruct`"}"`
-- Windows CMD: `--vlm "{\"model\":\"qwen2-vl-7b-instruct\"}"`
+- Bash/macOS/Linux: `--vlm '{"model":"qwen/qwen-2.5-vl-7b-instruct"}'`
+- PowerShell: `--vlm "{`"model`":`"qwen/qwen-2.5-vl-7b-instruct`"}"`
+- Windows CMD: `--vlm "{\"model\":\"qwen/qwen-2.5-vl-7b-instruct\"}"`
 
 What it does
 - For each image in `--in`, calls the VLM and writes one JSON line with keys: `id`, `domain`, `real_path`, `prompt`.
@@ -88,15 +88,15 @@ Minimal CSV example
 
 Run the judge
 - Bash/macOS/Linux:
-- `python elm-detector-probe/src/judge_remote.py --images out/images.csv --model "qwen2-vl-7b-instruct" --out out/judge.jsonl`
+- `python elm-detector-probe/src/judge_remote.py --images out/images.csv --model "qwen/qwen-2.5-vl-7b-instruct" --out out/judge.jsonl`
 - Windows PowerShell:
-- `python elm-detector-probe/src/judge_remote.py --images out/images.csv --model "qwen2-vl-7b-instruct" --out out/judge.jsonl`
+- `python elm-detector-probe/src/judge_remote.py --images out/images.csv --model "qwen/qwen-2.5-vl-7b-instruct" --out out/judge.jsonl`
 
 Output format
 - Each line merges your CSV row with fields: `ai_prob` (0..1), `label` (`ai` or `real`), `rationale` (≤2 short sentences), and `model`.
 
 Sample output line (formatted)
-- `{ "id": "img01", "path": ".../PXL_20220625_193744809.jpg", "class": "real", "domain": "outdoor", "split": "test", "ai_prob": 0.23, "label": "real", "rationale": "natural lens artifacts and lighting", "model": "qwen2-vl-7b-instruct" }`
+- `{ "id": "img01", "path": ".../PXL_20220625_193744809.jpg", "class": "real", "domain": "outdoor", "split": "test", "ai_prob": 0.23, "label": "real", "rationale": "natural lens artifacts and lighting", "model": "qwen/qwen-2.5-vl-7b-instruct" }`
 
 Create a CSV from a folder (optional helper)
 - Quick Python snippet to scan a folder and emit `out/images.csv` with required columns (domain = folder name, split = `test`):
@@ -123,16 +123,16 @@ PY`
 
 **Model Selection**
 - Use any OpenRouter VLM compatible with `chat.completions` and image inputs.
-- Examples: `qwen2-vl-7b-instruct` (fast, low-cost), or other VLMs available to your account.
-- For `promptgen_remote.py`, prefer `--model <name>`; or use `--vlm '{"model":"..."}'`.
-- For `judge_remote.py`, pass it via `--model "..."`.
+- Specify the full model slug (family/name), e.g., `qwen/qwen-2.5-vl-7b-instruct`.
+- For `promptgen_remote.py`, prefer `--model <slug>`; or use `--vlm '{"model":"<slug>"}'`.
+- For `judge_remote.py`, pass it via `--model "<slug>"`.
 
 **Troubleshooting**
 - Missing key: ensure `.env` has `OPENROUTER_API_KEY` and you restarted your shell or reloaded env.
 - Auth/401: confirm your key is active and allowed for the chosen model.
 - Timeouts: large images or slow networks can hit the 120s request timeout; retry on smaller batches.
 - Empty outputs: for `promptgen_remote.py`, ensure `--in` folder directly contains images (no nested subfolders). For `judge_remote.py`, confirm `path` values in CSV are valid.
-- JSON argument quoting: on PowerShell, prefer `--model <name>`. If using `--vlm`, escape quotes like: `--vlm "{`"model`":`"qwen2-vl-7b-instruct`"}"`. In Bash, single quotes work. In CMD, use double quotes and escape inner quotes.
+- JSON argument quoting: on PowerShell, prefer `--model <slug>`. If using `--vlm`, escape quotes like: `--vlm "{`"model`":`"qwen/qwen-2.5-vl-7b-instruct`"}"`. In Bash, single quotes work. In CMD, use double quotes and escape inner quotes.
 
 **Data & Outputs**
 - Inputs: images (`.jpg`, `.jpeg`, `.png`, `.webp`, `.bmp`).
