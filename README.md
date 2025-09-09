@@ -60,13 +60,13 @@ Note: Runtime scripts rely on `requests`, `pillow`, `tqdm`, `python-dotenv`, etc
 - Expected: prints `Hello from elm-detector-probe!`
 
 **Run: Prompt Generation**
-- Use `promptgen_remote.py` to turn images into semantic/style prompt JSON. It reads a directory of images (no recursion), so point it at a folder that directly contains images.
-- Example (Bash/macOS/Linux):
-- `python elm-detector-probe/src/promptgen_remote.py --in elm-detector-probe/data/real/outdoor --out out/prompts.jsonl --vlm '{"model":"qwen2-vl-7b-instruct"}'`
-- Example (PowerShell):
-- `python elm-detector-probe/src/promptgen_remote.py --in elm-detector-probe/data/real/outdoor --out out/prompts.jsonl --vlm '{"model":"qwen2-vl-7b-instruct"}'`
-- Example (Windows CMD):
-- `python elm-detector-probe\src\promptgen_remote.py --in elm-detector-probe\data\real\outdoor --out out\prompts.jsonl --vlm "{\"model\":\"qwen2-vl-7b-instruct\"}"`
+- Use `promptgen_remote.py` to turn images into semantic/style prompt JSON. It expects a directory containing one-level subfolders, and reads images inside those subfolders (no deeper recursion).
+- Recommended (all shells):
+- `python elm-detector-probe/src/promptgen_remote.py --in elm-detector-probe/data/real --out out/prompts.jsonl --model qwen2-vl-7b-instruct`
+- If you prefer JSON:
+- Bash/macOS/Linux: `--vlm '{"model":"qwen2-vl-7b-instruct"}'`
+- PowerShell: `--vlm "{`"model`":`"qwen2-vl-7b-instruct`"}"`
+- Windows CMD: `--vlm "{\"model\":\"qwen2-vl-7b-instruct\"}"`
 
 What it does
 - For each image in `--in`, calls the VLM and writes one JSON line with keys: `id`, `domain`, `real_path`, `prompt`.
@@ -75,7 +75,7 @@ Sample output line (formatted)
 - `{ "id": "PXL_20220625_193744809", "domain": "outdoor", "real_path": "elm-detector-probe/data/real/outdoor/PXL_20220625_193744809.jpg", "prompt": { "semantic": "sunlit coastal path with lighthouse in distance", "style": ["photo-realistic", "natural light"], "neg": ["text", "watermark"] } }`
 
 Input folder layout tips
-- This script looks one level deep (no recursion). Pass the specific folder that has images directly inside it. For example, use `--in elm-detector-probe/data/real/outdoor` rather than the parent `.../real`.
+- This script looks one level deep (no recursion). Pass a folder whose immediate subfolders contain images. For example, use `--in elm-detector-probe/data/real` to process both `indoor/` and `outdoor/`. If you point directly at `.../outdoor`, there must be subfolders inside `outdoor` for images to be discovered.
 
 **Run: AI vs. Real Judge**
 - `judge_remote.py` classifies images as AI vs. real from a CSV. The CSV must include: `id,path,class,domain,split`.
@@ -124,7 +124,7 @@ PY`
 **Model Selection**
 - Use any OpenRouter VLM compatible with `chat.completions` and image inputs.
 - Examples: `qwen2-vl-7b-instruct` (fast, low-cost), or other VLMs available to your account.
-- For `promptgen_remote.py`, pass the model via `--vlm '{"model":"..."}'`.
+- For `promptgen_remote.py`, prefer `--model <name>`; or use `--vlm '{"model":"..."}'`.
 - For `judge_remote.py`, pass it via `--model "..."`.
 
 **Troubleshooting**
@@ -132,7 +132,7 @@ PY`
 - Auth/401: confirm your key is active and allowed for the chosen model.
 - Timeouts: large images or slow networks can hit the 120s request timeout; retry on smaller batches.
 - Empty outputs: for `promptgen_remote.py`, ensure `--in` folder directly contains images (no nested subfolders). For `judge_remote.py`, confirm `path` values in CSV are valid.
-- JSON argument quoting: when passing `--vlm '{"model":"..."}'`, PowerShell and Bash handle single quotes; in CMD use double quotes and escape inner quotes.
+- JSON argument quoting: on PowerShell, prefer `--model <name>`. If using `--vlm`, escape quotes like: `--vlm "{`"model`":`"qwen2-vl-7b-instruct`"}"`. In Bash, single quotes work. In CMD, use double quotes and escape inner quotes.
 
 **Data & Outputs**
 - Inputs: images (`.jpg`, `.jpeg`, `.png`, `.webp`, `.bmp`).

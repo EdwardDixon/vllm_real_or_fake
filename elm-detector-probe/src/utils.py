@@ -1,13 +1,14 @@
 """
-Lightweight utilities for image handling.
+Lightweight utilities for image handling and response parsing.
 
 Exposes:
 - read_image_b64(path): Return a base64 data-URL string for VLM input.
+- parse_json_from_text(text): Extract JSON object from raw model text.
 """
 
 from __future__ import annotations
 
-import os, base64
+import os, base64, re, json
 from PIL import Image, ImageFilter
 
 _MIME_BY_EXT = {
@@ -67,6 +68,54 @@ def save_jpeg_strip_exif(im: Image.Image, out_path, quality=80):
     im.save(out_path, format="JPEG", quality=quality, optimize=True)
 
 
+def _extract_json_braced(text: str) -> str | None:
+    # Find a top-level JSON object by balancing braces
+    start = text.find("{")
+    if start == -1:
+        return None
+    depth = 0
+    for i in range(start, len(text)):
+        ch = text[i]
+        if ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth == 0:
+                return text[start : i + 1]
+    return None
 
-__all__ = ["read_image_b64"]
 
+def parse_json_from_text(text: str) -> dict:
+    """Parse JSON even when wrapped in code fences or extra prose.
+
+    Tries in order:
+    1) direct json.loads
+    2) first fenced block ```...```
+    3) first balanced-brace JSON object substring
+    Raises ValueError on failure.
+    """
+    if text is None:
+        raise ValueError("No text to parse")
+    s = text.strip()
+    # 1) direct parse
+    try:
+        return json.loads(s)
+    except Exception:
+        pass
+    # 2) fenced code block
+    m = re.search(r"```[a-zA-Z]*\n(.*?)```", s, re.DOTALL)
+    if m:
+        inner = m.group(1).strip()
+        try:
+            return json.loads(inner)
+        except Exception:
+            # fall through to brace-based extraction
+            s = inner
+    # 3) balanced braces
+    candidate = _extract_json_braced(s)
+    if candidate:
+        return json.loads(candidate)
+    raise ValueError("Could not extract JSON from text")
+
+
+__all__ = ["read_image_b64", "parse_json_from_text"]

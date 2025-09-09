@@ -1,7 +1,8 @@
 
-import os, argparse, csv, json, base64, requests
+import os, sys, argparse, csv, json, base64, requests
 from tqdm import tqdm
 from dotenv import load_dotenv
+from .utils import parse_json_from_text if False else None
 
 load_dotenv()
 API_KEY = os.getenv("OPENROUTER_API_KEY")
@@ -36,7 +37,7 @@ def call_vlm(model, img_b64):
     r.raise_for_status()
     return r.json()["choices"][0]["message"]["content"]
 
-def coerce(out_text):
+def coerce(out_text, strict: bool = False):
     try:
         j = json.loads(out_text)
         p = float(j.get("ai_prob", 0.5))
@@ -46,7 +47,9 @@ def coerce(out_text):
         if lbl not in ["ai","real"]:
             lbl = "ai" if p>=0.5 else "real"
         return {"ai_prob": p, "label": lbl, "rationale": rat}
-    except Exception:
+    except Exception as e:
+        if strict:
+            raise
         return {"ai_prob": 0.5, "label":"real", "rationale":"parse-fallback"}
 
 def main():
@@ -54,20 +57,36 @@ def main():
     ap.add_argument("--images", required=True, help="CSV with id,path,class,domain,split")
     ap.add_argument("--model", required=True)
     ap.add_argument("--out", required=True)
+    ap.add_argument("--on-error", choices=["record","skip","halt"], default="record",
+                    help="How to handle per-item errors: record to JSONL, skip the item, or halt immediately.")
+    ap.add_argument("--fail-on-error", action="store_true",
+                    help="Exit with code 1 if any errors occurred (after processing).")
     args = ap.parse_args()
 
     out = open(args.out, "w", encoding="utf-8")
+    errors = 0
     with open(args.images, "r", encoding="utf-8") as f:
         reader = list(csv.DictReader(f))
         for row in tqdm(reader):
             img_b64 = encode_image(row["path"])
             try:
                 txt = call_vlm(args.model, img_b64)
+                coerced = coerce(txt, strict=True)
+                rec = {**row, **coerced, "model": args.model, "ok": True}
+                out.write(json.dumps(rec) + "\n")
             except Exception as e:
-                txt = "{}"
-            coerced = coerce(txt)
-            out.write(json.dumps({**row, **coerced, "model": args.model}) + "\n")
+                errors += 1
+                if args.on_error == "halt":
+                    out.close()
+                    raise
+                elif args.on_error == "skip":
+                    continue
+                else:  # record
+                    rec = {**row, "model": args.model, "ok": False, "error": str(e)}
+                    out.write(json.dumps(rec) + "\n")
     out.close()
+    if errors and args.fail_on_error:
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()
