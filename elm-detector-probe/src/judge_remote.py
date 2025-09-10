@@ -2,7 +2,12 @@
 import os, sys, argparse, csv, json, base64, requests
 from tqdm import tqdm
 from dotenv import load_dotenv
-from .utils import parse_json_from_text if False else None
+# Ensure local utils.py is importable whether run from repo root or within src
+try:
+    from utils import parse_json_from_text
+except Exception:
+    sys.path.insert(0, os.path.dirname(__file__))
+    from utils import parse_json_from_text
 
 load_dotenv()
 API_KEY = os.getenv("OPENROUTER_API_KEY")
@@ -39,7 +44,7 @@ def call_vlm(model, img_b64):
 
 def coerce(out_text, strict: bool = False):
     try:
-        j = json.loads(out_text)
+        j = parse_json_from_text(out_text)
         p = float(j.get("ai_prob", 0.5))
         lbl = j.get("label","ai" if p>=0.5 else "real")
         rat = j.get("rationale","")

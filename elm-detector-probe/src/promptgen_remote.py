@@ -12,11 +12,21 @@ API_KEY = os.getenv("OPENROUTER_API_KEY")
 BASE_URL = os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api")
 
 PROMPT = (
-    "You are a visual prompt engineer. Given an input image, output JSON:\n"
-    '{"semantic": "...", "style": ["...","..."], "neg": ["...","..."]}\n'
-    "Rules: avoid brand names, exact text, and unique faces; target Stable Diffusion style prompts. "
-    "Keep semantic concise.\nReturn JSON only."
+    "You are a professional prompt engineer creating photorealistic prompts for diffusion models.\n"
+    "Given an input image, output a single JSON object with fields:\n"
+    "{\n"
+    '  \"semantic\": \"short description of subject and action\",\n'
+    '  \"environment\": \"detailed description of setting, background, and lighting\",\n'
+    '  \"style\": [\"photographic style, lens type, time of day, lighting\"],\n'
+    '  \"camera\": {\"lens\":\"...\",\"aperture\":\"...\",\"shot_type\":\"...\"},\n'
+    '  \"mood\": [\"...\"],\n'
+    '  \"neg\": [\"text\",\"watermark\",\"logo\",\"extra fingers\",\"low quality\"]\n'
+    "}\n\n"
+    "Focus on realism: describe subject, setting, lighting, and camera properties. "
+    "Avoid brand names, unique IDs, or copyrighted content. "
+    "Return strictly valid JSON only."
 )
+
 
 def call_vlm(model, img_b64):
     url = f"{BASE_URL}/v1/chat/completions"

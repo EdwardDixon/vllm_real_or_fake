@@ -10,6 +10,31 @@ load_dotenv()
 API_KEY = os.getenv("OPENROUTER_API_KEY")
 BASE_URL = os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api")
 
+def build_prompt(j):
+    """Turn rich JSON prompt into a photorealistic text prompt string."""
+    parts = []
+    if not isinstance(j, dict):
+        return str(j)
+
+    if j.get("semantic"):
+        parts.append(j["semantic"])
+    if j.get("environment"):
+        parts.append(j["environment"])
+    if j.get("style"):
+        parts.extend(j["style"])
+    if j.get("camera"):
+        cam = j["camera"]
+        cam_bits = []
+        for k,v in cam.items():
+            if v:
+                cam_bits.append(f"{k}: {v}")
+        if cam_bits:
+            parts.append("camera settings: " + ", ".join(cam_bits))
+    if j.get("mood"):
+        parts.extend(j["mood"])
+
+    return ", ".join([p for p in parts if p])
+
 def call_image_gen(model, prompt):
     url = f"{BASE_URL}/v1/chat/completions"
     headers = {
@@ -25,25 +50,20 @@ def call_image_gen(model, prompt):
     r = requests.post(url, headers=headers, json=payload, timeout=180)
     r.raise_for_status()
     data = r.json()
-
     message = data["choices"][0]["message"]
 
-    # New: handle `images`
     if "images" in message and message["images"]:
         img_obj = message["images"][0]
         img_url = img_obj["image_url"]["url"]
 
         if img_url.startswith("data:image"):
-            # direct base64
-            b64 = img_url.split(",",1)[1]
-            return b64
+            return img_url.split(",",1)[1]  # base64
         else:
-            # fetch from URL
             img = requests.get(img_url, timeout=180).content
             return base64.b64encode(img).decode()
 
     raise RuntimeError(f"No image found in response: {json.dumps(message)[:200]}")
-
+    
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--in", dest="in_path", required=True)

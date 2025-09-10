@@ -121,6 +121,14 @@ with open('out/images.csv','w',newline='',encoding='utf-8') as f:
 print('Wrote out/images.csv with', len(rows), 'rows')
 PY`
 
+**Run: Synthesis (Generate Images)**
+- Use `synth_remote.py` to render images from a prompts JSONL produced by `promptgen_remote.py`.
+- PowerShell (uv):
+- `uv run python .\elm-detector-probe\src\synth_remote.py --in .\out\prompts.real.jsonl --out .\elm-detector-probe\data\synthetic --model google/gemini-2.5-flash-image-preview`
+- Bash/macOS/Linux (uv):
+- `uv run python elm-detector-probe/src/synth_remote.py --in out/prompts.real.jsonl --out elm-detector-probe/data/synthetic --model google/gemini-2.5-flash-image-preview`
+- Tip: use the full image model slug as shown in OpenRouter (family/name).
+
 **Model Selection**
 - Use any OpenRouter VLM compatible with `chat.completions` and image inputs.
 - Specify the full model slug (family/name), e.g., `qwen/qwen-2.5-vl-7b-instruct`.
